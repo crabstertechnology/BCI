@@ -1,0 +1,4 @@
+TEST-3: EYES OPEN vs EYES CLOSED
+--------------------------------
+Eyes Open  - Std Dev : 0.000397 V
+Eyes Closed- Std Dev : 0.000395 V

@@ -1,0 +1,7 @@
+TEST-2: EYE BLINK ARTIFACT RESULTS
+---------------------------------
+Duration           : 30 seconds
+Sampling Rate      : 250 Hz
+Mean Voltage       : 0.093163 V
+Std Deviation      : 0.000397 V
+Peak-to-Peak Value : 0.002418 V

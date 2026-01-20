@@ -1,0 +1,8 @@
+TEST-1: BASELINE STABILITY RESULTS
+--------------------------------
+Duration        : 60 seconds
+Sampling Rate   : 250 Hz
+Mean Voltage    : 0.093126 V
+Std Deviation   : 0.000416 V
+Min Voltage     : 0.091062 V
+Max Voltage     : 0.094286 V
