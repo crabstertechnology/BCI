@@ -1,9 +1,3 @@
-Good. This is the **make-or-break section** for evaluation.
-I’ll give you a **clean, honest, examiner-proof “Results & Discussion”** you can **directly paste** into your report.
-
-No exaggeration. No AI hype. Everything aligns with what you actually built and tested.
-
----
 
 # 📊 RESULTS AND DISCUSSION
 
