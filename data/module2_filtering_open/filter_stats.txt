@@ -1,0 +1,6 @@
+MODULE-2: SIGNAL FILTERING RESULTS
+---------------------------------
+Band-pass range : 0.5–40.0 Hz
+Notch frequency : 50.0 Hz
+Raw Std Dev     : 0.000397 V
+Filtered Std Dev: 0.000225 V

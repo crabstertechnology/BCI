@@ -11,8 +11,8 @@ HIGHCUT = 40.0
 NOTCH_FREQ = 50.0        # India mains
 Q = 30.0                 # Notch quality factor
 
-DATA_PATH = "../data/module2_filtering/"
-RAW_FILE = DATA_PATH + "raw_input.csv"
+DATA_PATH = "../data/module2_filtering_open/"
+RAW_FILE = DATA_PATH + "eyes_open.csv"
 # ------------------------------------------
 
 os.makedirs(DATA_PATH, exist_ok=True)

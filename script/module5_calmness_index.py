@@ -1,0 +1,76 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import csv
+import os
+
+# ---------------- SETTINGS ----------------
+DATA_PATH = "../data/module5_calmness_index/"
+WINDOWS = 30            # number of CI windows
+# -----------------------------------------
+
+os.makedirs(DATA_PATH, exist_ok=True)
+
+# -------- SAMPLE INPUT (replace with real values) --------
+# These should come from sliding-window Alpha/Beta computation
+alpha_power = np.random.uniform(2.0, 4.0, WINDOWS)
+beta_power  = np.random.uniform(1.0, 3.0, WINDOWS)
+
+# -------- CALMNESS INDEX --------
+calmness_index = alpha_power / beta_power
+
+# -------- BASELINE (use first N windows as relaxed baseline) --------
+baseline_ci = calmness_index[:10]
+mu = np.mean(baseline_ci)
+sigma = np.std(baseline_ci)
+
+# -------- THRESHOLDING --------
+states = []
+for ci in calmness_index:
+    if ci >= mu:
+        states.append("Calm")
+    elif ci >= mu - sigma:
+        states.append("Neutral")
+    else:
+        states.append("Not Calm")
+
+# -------- SAVE BASELINE --------
+with open(DATA_PATH + "baseline_bandpower.txt", "w") as f:
+    f.write("CALMNESS BASELINE\n")
+    f.write("-----------------\n")
+    f.write(f"Mean (mu)  : {mu:.4f}\n")
+    f.write(f"Std (sigma): {sigma:.4f}\n")
+
+
+# -------- SAVE TIMELINE --------
+with open(DATA_PATH + "calmness_timeline.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["Window", "Calmness Index", "State"])
+    for i, (ci, st) in enumerate(zip(calmness_index, states)):
+        writer.writerow([i+1, ci, st])
+
+# -------- PLOT --------
+plt.figure(figsize=(10,4))
+plt.plot(calmness_index, marker='o', label="Calmness Index")
+plt.axhline(mu, linestyle="--", label="Baseline Mean")
+plt.axhline(mu - sigma, linestyle=":", label="Lower Threshold")
+plt.xlabel("Time Windows")
+plt.ylabel("Calmness Index")
+plt.title("Calmness Index Over Time")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(DATA_PATH + "calmness_plot.png", dpi=300)
+plt.show()
+
+# -------- SAVE THRESHOLDS --------
+with open(DATA_PATH + "thresholds.txt", "w") as f:
+    f.write("CALMNESS THRESHOLDS\n")
+    f.write("------------------\n")
+    f.write(f"Calm        : CI >= {mu:.4f}\n")
+    f.write(f"Neutral     : {mu - sigma:.4f} <= CI < {mu:.4f}\n")
+    f.write(f"Not Calm    : CI < {mu - sigma:.4f}\n")
+
+
+print("Calmness Index computation completed.")
+print(f"Baseline Mean: {mu:.4f}")
+print(f"Baseline Std : {sigma:.4f}")

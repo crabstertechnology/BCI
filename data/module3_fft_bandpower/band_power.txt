@@ -1,0 +1,5 @@
+MODULE-3: FFT & BAND POWER RESULTS
+---------------------------------
+Alpha Band (8–13 Hz) Power : 5.823916e-09
+Beta Band (13–30 Hz) Power : 1.940012e-08
+Alpha/Beta Ratio          : 0.3002

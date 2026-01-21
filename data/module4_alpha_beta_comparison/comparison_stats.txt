@@ -1,0 +1,8 @@
+MODULE-4: ALPHA/BETA COMPARISON
+--------------------------------
+Alpha Power (Eyes Open)   : 6.054832e-09
+Alpha Power (Eyes Closed) : 5.823916e-09
+Beta Power (Eyes Open)    : 2.026284e-08
+Beta Power (Eyes Closed)  : 1.940012e-08
+Alpha/Beta (Eyes Open)   : 0.2988
+Alpha/Beta (Eyes Closed) : 0.3002
