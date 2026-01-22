@@ -1,0 +1,6 @@
+AI MODEL EVALUATION
+-------------------
+Model              : Logistic Regression
+Accuracy           : 0.6364
+Features           : Alpha, Beta, CI
+Labels             : Calm, Neutral, Not Calm
