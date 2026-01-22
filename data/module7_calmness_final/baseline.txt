@@ -1,0 +1,5 @@
+CALMNESS BASELINE
+-----------------
+Mean (mu)     : 0.289052
+Std (sigma)   : 0.106547
+Baseline N    : 10

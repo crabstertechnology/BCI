@@ -1,0 +1,5 @@
+CALMNESS THRESHOLDS
+------------------
+Calm        : CI >= 0.289052
+Neutral     : 0.182504 <= CI < 0.289052
+Not Calm    : CI < 0.182504

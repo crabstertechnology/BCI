@@ -1,4 +1,4 @@
 CALMNESS BASELINE
 -----------------
-Mean (mu)  : 1.9543
-Std (sigma): 0.5170
+Mean (mu)  : 1.4776
+Std (sigma): 0.2457

@@ -1,0 +1,8 @@
+SLIDING WINDOW BAND POWER EXTRACTION
+-----------------------------------
+Sampling Rate      : 250 Hz
+Window Length      : 2.0 s
+Step Size          : 0.5 s
+Alpha Band         : 8–13 Hz
+Beta Band          : 13–30 Hz
+Total Windows      : 36
