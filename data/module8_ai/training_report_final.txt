@@ -1,0 +1,7 @@
+FINAL AI TRAINING REPORT
+------------------------
+Model           : Logistic Regression
+Classes         : Calm, Not Calm
+Features        : Alpha, Beta, AlphaBetaRatio
+Labeling        : Session-level calibration
+Class balancing : Enabled

@@ -1,0 +1,14 @@
+FINAL RESULTS SUMMARY
+---------------------
+Total windows analyzed : 490
+Calm windows           : 27
+Not Calm windows       : 463
+
+Observations:
+- Alpha/Beta ratio varies over time reflecting cognitive state changes.
+- Calm states dominate during relaxed periods.
+- Not Calm states appear during movement or cognitive load.
+
+Conclusion:
+The real-time EEG-based system successfully tracks calmness using
+frequency-domain features and a calibrated machine learning model.

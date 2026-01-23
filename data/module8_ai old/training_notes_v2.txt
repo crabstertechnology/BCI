@@ -1,0 +1,7 @@
+AI TRAINING – VERSION 2
+----------------------
+Model          : Logistic Regression
+Classes        : Calm, Not Calm
+Features       : Alpha, Beta, Alpha/Beta
+CI used only for labeling (not as feature)
+Class balance  : Enabled
