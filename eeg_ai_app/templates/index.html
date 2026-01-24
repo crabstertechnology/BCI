@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI EEG Calmness Monitor</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>AI-Driven EEG Calmness Monitor</h1>
+    <div class="subtitle">
+        Non-medical, personalized EEG biofeedback system
+    </div>
+
+    <!-- State Indicator -->
+    <div id="state" class="state-neutral">
+        Waiting for EEG data...
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-box">
+        <canvas id="ratioChart"></canvas>
+    </div>
+
+    <div class="footer">
+        Real-time EEG processing • Classical ML • Academic Demo
+    </div>
+
+</div>
+
+<script>
+const ctx = document.getElementById("ratioChart").getContext("2d");
+
+const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{
+            label: "Alpha / Beta Ratio",
+            data: [],
+            borderColor: "#2b6cb0",
+            backgroundColor: "rgba(43,108,176,0.1)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                min: 0,
+                max: 3,
+                title: {
+                    display: true,
+                    text: "Alpha / Beta Ratio"
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: "Time Window"
+                }
+            }
+        }
+    }
+});
+
+function updateUI() {
+    fetch("/live")
+        .then(response => response.json())
+        .then(data => {
+
+            // Update chart
+            chart.data.labels = data.ratio.map((_, i) => i + 1);
+            chart.data.datasets[0].data = data.ratio;
+            chart.update();
+
+            // Update state
+            const stateDiv = document.getElementById("state");
+            stateDiv.innerText = "State: " + data.state;
+
+            stateDiv.className = "";
+            if (data.state === "Calm") {
+                stateDiv.classList.add("state-calm");
+            } else if (data.state === "Not Calm") {
+                stateDiv.classList.add("state-not-calm");
+            } else {
+                stateDiv.classList.add("state-neutral");
+            }
+        });
+}
+
+setInterval(updateUI, 2000);
+</script>
+
+</body>
+</html>
