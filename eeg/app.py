@@ -241,7 +241,7 @@ def serial_reader_thread():
                                     'time': t,
                                     'voltage': voltage,
                                     'mode': 'recording'
-                                }, broadcast=True, namespace='/')
+                                })
                             
                             # If predicting, process windows
                             elif state.is_predicting and state.model:
@@ -261,7 +261,7 @@ def serial_reader_thread():
                                         'time': time.time() - state.prediction_start_time,
                                         'voltage': voltage,
                                         'mode': 'prediction'
-                                    }, broadcast=True, namespace='/')
+                                    })
                                 
                                 # Process window
                                 result = process_prediction_window()
@@ -324,7 +324,7 @@ def process_prediction_window():
                     
                     print(f"[Prediction] {prediction} | α={alpha:.2e} β={beta:.2e} ratio={ratio:.3f} conf={confidence:.1%}")
                     
-                    # Emit prediction with broadcast
+                    # Emit prediction
                     prediction_data = {
                         'time': time.time() - state.prediction_start_time,
                         'alpha': float(alpha),
@@ -335,7 +335,7 @@ def process_prediction_window():
                     }
                     
                     print(f"[WebSocket] Emitting prediction_data: {prediction_data['state']}")
-                    socketio.emit('prediction_data', prediction_data, broadcast=True, namespace='/')
+                    socketio.emit('prediction_data', prediction_data)
                     
                     return True  # Successfully made prediction
                     
