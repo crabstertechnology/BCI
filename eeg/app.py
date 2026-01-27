@@ -117,13 +117,16 @@ def process_calibration_file(filename, label):
     window_size = int(WINDOW_SEC * FS)
     step_size = int(STEP_SEC * FS)
     
+    # Calculate appropriate nperseg (must be <= window_size)
+    nperseg = min(256, window_size)
+    
     features = []
     window_id = 1
     
     for start in range(0, len(filtered) - window_size, step_size):
         window = filtered[start:start + window_size]
         
-        freqs, psd = welch(window, FS, nperseg=512)
+        freqs, psd = welch(window, FS, nperseg=nperseg)
         
         alpha = band_power(freqs, psd, ALPHA_BAND)
         beta = band_power(freqs, psd, BETA_BAND)
@@ -214,46 +217,52 @@ def train_model():
 def serial_reader_thread():
     """Background thread to read serial data"""
     while True:
-        if state.serial_port and state.serial_port.is_open:
-            try:
-                if state.serial_port.in_waiting:
-                    raw = state.serial_port.readline().decode(errors="ignore").strip()
-                    if raw.isdigit():
-                        adc_value = int(raw)
-                        voltage = (adc_value / ADC_MAX) * VREF
-                        
-                        state.buffer.append(voltage)
-                        
-                        # If recording, save data
-                        if state.is_recording:
-                            t = time.time() - state.recording_start_time
-                            state.recording_data.append([t, adc_value])
+        try:
+            if state.serial_port and state.serial_port.is_open:
+                try:
+                    if state.serial_port.in_waiting:
+                        raw = state.serial_port.readline().decode(errors="ignore").strip()
+                        if raw.isdigit():
+                            adc_value = int(raw)
+                            voltage = (adc_value / ADC_MAX) * VREF
                             
-                            # Emit raw waveform data
-                            socketio.emit('waveform_data', {
-                                'time': t,
-                                'voltage': voltage,
-                                'mode': 'recording'
-                            })
-                        
-                        # If predicting, process windows
-                        elif state.is_predicting and state.model:
-                            state.prediction_buffer.append(voltage)
+                            state.buffer.append(voltage)
                             
-                            # Emit raw waveform
-                            socketio.emit('waveform_data', {
-                                'time': time.time() - state.prediction_start_time,
-                                'voltage': voltage,
-                                'mode': 'prediction'
-                            })
+                            # If recording, save data
+                            if state.is_recording:
+                                t = time.time() - state.recording_start_time
+                                state.recording_data.append([t, adc_value])
+                                
+                                # Emit raw waveform data
+                                socketio.emit('waveform_data', {
+                                    'time': t,
+                                    'voltage': voltage,
+                                    'mode': 'recording'
+                                })
                             
-                            # Process window
-                            process_prediction_window()
-                            
-            except Exception as e:
-                print(f"Serial read error: {e}")
-        
-        time.sleep(0.001)  # Small delay to prevent CPU hogging
+                            # If predicting, process windows
+                            elif state.is_predicting and state.model:
+                                state.prediction_buffer.append(voltage)
+                                
+                                # Emit raw waveform
+                                socketio.emit('waveform_data', {
+                                    'time': time.time() - state.prediction_start_time,
+                                    'voltage': voltage,
+                                    'mode': 'prediction'
+                                })
+                                
+                                # Process window
+                                process_prediction_window()
+                                
+                except Exception as e:
+                    if state.serial_port:  # Only print if we expect a connection
+                        print(f"Serial read error: {e}")
+            
+            time.sleep(0.001)  # Small delay to prevent CPU hogging
+            
+        except Exception as e:
+            # Catch any outer exceptions to keep thread alive
+            time.sleep(0.1)
 
 def process_prediction_window():
     """Process a window for prediction"""
@@ -273,8 +282,11 @@ def process_prediction_window():
             try:
                 filtered = notch_filter(bandpass(window))
                 
+                # Calculate appropriate nperseg
+                nperseg = min(256, len(filtered))
+                
                 # Extract features
-                freqs, psd = welch(filtered, FS, nperseg=512)
+                freqs, psd = welch(filtered, FS, nperseg=nperseg)
                 alpha = band_power(freqs, psd, ALPHA_BAND)
                 beta = band_power(freqs, psd, BETA_BAND)
                 
