@@ -213,9 +213,11 @@ def train_model():
     
     return True, f"Model trained successfully! Accuracy: {accuracy:.2%}"
 
-# ==================== SERIAL READING ====================
 def serial_reader_thread():
     """Background thread to read serial data"""
+    samples_received = 0
+    last_print_time = time.time()
+    
     while True:
         try:
             if state.serial_port and state.serial_port.is_open:
@@ -243,6 +245,13 @@ def serial_reader_thread():
                             # If predicting, process windows
                             elif state.is_predicting and state.model:
                                 state.prediction_buffer.append(voltage)
+                                samples_received += 1
+                                
+                                # Print status every second
+                                if time.time() - last_print_time >= 1.0:
+                                    print(f"Samples/sec: {samples_received}, Buffer: {len(state.prediction_buffer)}/500")
+                                    samples_received = 0
+                                    last_print_time = time.time()
                                 
                                 # Emit raw waveform
                                 socketio.emit('waveform_data', {
@@ -269,18 +278,28 @@ def process_prediction_window():
     window_size = int(WINDOW_SEC * FS)
     step_size = int(STEP_SEC * FS)
     
-    if len(state.prediction_buffer) >= window_size:
+    current_buffer_size = len(state.prediction_buffer)
+    
+    # Debug: Print buffer status periodically
+    if current_buffer_size % 50 == 0 and current_buffer_size > 0:
+        print(f"Buffer filling: {current_buffer_size}/{window_size} samples ({current_buffer_size/window_size*100:.1f}%)")
+    
+    if current_buffer_size >= window_size:
         # Check if enough new data has arrived
-        current_index = len(state.prediction_buffer)
+        current_index = current_buffer_size
         if current_index - state.last_step_index >= step_size:
             state.last_step_index = current_index
             
             # Get window
             window = np.array(list(state.prediction_buffer)[-window_size:])
             
+            print(f"\n{'='*60}")
+            print(f"Processing window: {len(window)} samples")
+            
             # Filter
             try:
                 filtered = notch_filter(bandpass(window))
+                print(f"Filtered signal range: {filtered.min():.4f} to {filtered.max():.4f}")
                 
                 # Calculate appropriate nperseg
                 nperseg = min(256, len(filtered))
@@ -290,8 +309,12 @@ def process_prediction_window():
                 alpha = band_power(freqs, psd, ALPHA_BAND)
                 beta = band_power(freqs, psd, BETA_BAND)
                 
+                print(f"Alpha power: {alpha:.3e}")
+                print(f"Beta power: {beta:.3e}")
+                
                 if beta > 0:
                     ratio = alpha / beta
+                    print(f"Alpha/Beta ratio: {ratio:.3f}")
                     
                     # Predict
                     features = np.array([[alpha, beta, ratio]])
@@ -303,6 +326,9 @@ def process_prediction_window():
                     pred_idx = 0 if prediction == "Calm" else 1
                     confidence = probability[pred_idx]
                     
+                    print(f"Prediction: {prediction} (confidence: {confidence:.2%})")
+                    print(f"{'='*60}\n")
+                    
                     # Emit prediction
                     socketio.emit('prediction_data', {
                         'time': time.time() - state.prediction_start_time,
@@ -312,9 +338,14 @@ def process_prediction_window():
                         'state': prediction,
                         'confidence': float(confidence)
                     })
+                else:
+                    print(f"Warning: Beta power is zero, skipping prediction")
+                    print(f"{'='*60}\n")
                     
             except Exception as e:
                 print(f"Prediction error: {e}")
+                import traceback
+                traceback.print_exc()
 
 # ==================== ROUTES ====================
 @app.route('/')
@@ -433,7 +464,15 @@ def start_prediction():
         state.last_step_index = 0
         state.prediction_start_time = time.time()
         
-        return jsonify({'success': True, 'message': 'Prediction started'})
+        print("\n" + "="*60)
+        print("PREDICTION MODE STARTED")
+        print("="*60)
+        print(f"Model loaded: {model_path}")
+        print(f"Waiting for {WINDOW_SEC} seconds of data before first prediction...")
+        print("Predictions will update every 0.5 seconds after initial window is filled.")
+        print("="*60 + "\n")
+        
+        return jsonify({'success': True, 'message': 'Prediction started - collecting data for first window (2 seconds)...'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error loading model: {str(e)}'})
 
