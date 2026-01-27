@@ -217,6 +217,7 @@ def serial_reader_thread():
     """Background thread to read serial data"""
     samples_received = 0
     last_print_time = time.time()
+    prediction_count = 0
     
     while True:
         try:
@@ -247,21 +248,25 @@ def serial_reader_thread():
                                 state.prediction_buffer.append(voltage)
                                 samples_received += 1
                                 
-                                # Print status every second
-                                if time.time() - last_print_time >= 1.0:
-                                    print(f"Samples/sec: {samples_received}, Buffer: {len(state.prediction_buffer)}/500")
+                                # Print status every 5 seconds (less spam)
+                                if time.time() - last_print_time >= 5.0:
+                                    print(f"[Status] Rate: {samples_received/5:.1f} Hz, Buffer: {len(state.prediction_buffer)}, Predictions: {prediction_count}")
                                     samples_received = 0
+                                    prediction_count = 0
                                     last_print_time = time.time()
                                 
-                                # Emit raw waveform
-                                socketio.emit('waveform_data', {
-                                    'time': time.time() - state.prediction_start_time,
-                                    'voltage': voltage,
-                                    'mode': 'prediction'
-                                })
+                                # Emit raw waveform (throttle to every 10th sample to reduce load)
+                                if samples_received % 10 == 0:
+                                    socketio.emit('waveform_data', {
+                                        'time': time.time() - state.prediction_start_time,
+                                        'voltage': voltage,
+                                        'mode': 'prediction'
+                                    })
                                 
                                 # Process window
-                                process_prediction_window()
+                                result = process_prediction_window()
+                                if result:
+                                    prediction_count += 1
                                 
                 except Exception as e:
                     if state.serial_port:  # Only print if we expect a connection
@@ -275,31 +280,26 @@ def serial_reader_thread():
 
 def process_prediction_window():
     """Process a window for prediction"""
-    window_size = int(WINDOW_SEC * FS)
-    step_size = int(STEP_SEC * FS)
+    window_size = int(WINDOW_SEC * FS)  # 500 samples
+    step_size = int(STEP_SEC * FS)      # 125 samples
     
     current_buffer_size = len(state.prediction_buffer)
     
-    # Debug: Print buffer status periodically
-    if current_buffer_size % 50 == 0 and current_buffer_size > 0:
-        print(f"Buffer filling: {current_buffer_size}/{window_size} samples ({current_buffer_size/window_size*100:.1f}%)")
-    
     if current_buffer_size >= window_size:
-        # Check if enough new data has arrived
-        current_index = current_buffer_size
-        if current_index - state.last_step_index >= step_size:
-            state.last_step_index = current_index
+        # Calculate how many samples since last prediction
+        samples_since_last = current_buffer_size - state.last_step_index
+        
+        # Only process if we have a full step (125 samples) of new data
+        if samples_since_last >= step_size:
+            # Update the index to current position minus step
+            state.last_step_index = current_buffer_size - step_size
             
             # Get window
             window = np.array(list(state.prediction_buffer)[-window_size:])
             
-            print(f"\n{'='*60}")
-            print(f"Processing window: {len(window)} samples")
-            
             # Filter
             try:
                 filtered = notch_filter(bandpass(window))
-                print(f"Filtered signal range: {filtered.min():.4f} to {filtered.max():.4f}")
                 
                 # Calculate appropriate nperseg
                 nperseg = min(256, len(filtered))
@@ -309,12 +309,8 @@ def process_prediction_window():
                 alpha = band_power(freqs, psd, ALPHA_BAND)
                 beta = band_power(freqs, psd, BETA_BAND)
                 
-                print(f"Alpha power: {alpha:.3e}")
-                print(f"Beta power: {beta:.3e}")
-                
                 if beta > 0:
                     ratio = alpha / beta
-                    print(f"Alpha/Beta ratio: {ratio:.3f}")
                     
                     # Predict
                     features = np.array([[alpha, beta, ratio]])
@@ -326,8 +322,7 @@ def process_prediction_window():
                     pred_idx = 0 if prediction == "Calm" else 1
                     confidence = probability[pred_idx]
                     
-                    print(f"Prediction: {prediction} (confidence: {confidence:.2%})")
-                    print(f"{'='*60}\n")
+                    print(f"[Prediction] {prediction} | α={alpha:.2e} β={beta:.2e} ratio={ratio:.3f} conf={confidence:.1%}")
                     
                     # Emit prediction
                     socketio.emit('prediction_data', {
@@ -338,14 +333,15 @@ def process_prediction_window():
                         'state': prediction,
                         'confidence': float(confidence)
                     })
-                else:
-                    print(f"Warning: Beta power is zero, skipping prediction")
-                    print(f"{'='*60}\n")
+                    
+                    return True  # Successfully made prediction
                     
             except Exception as e:
                 print(f"Prediction error: {e}")
                 import traceback
                 traceback.print_exc()
+    
+    return False  # No prediction made
 
 # ==================== ROUTES ====================
 @app.route('/')
