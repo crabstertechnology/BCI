@@ -25,7 +25,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'eeg-monitor-secret-key'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
 
 # ==================== GLOBAL SETTINGS ====================
 FS = 250                    # Sampling rate (Hz)
@@ -241,7 +241,7 @@ def serial_reader_thread():
                                     'time': t,
                                     'voltage': voltage,
                                     'mode': 'recording'
-                                })
+                                }, broadcast=True, namespace='/')
                             
                             # If predicting, process windows
                             elif state.is_predicting and state.model:
@@ -261,7 +261,7 @@ def serial_reader_thread():
                                         'time': time.time() - state.prediction_start_time,
                                         'voltage': voltage,
                                         'mode': 'prediction'
-                                    })
+                                    }, broadcast=True, namespace='/')
                                 
                                 # Process window
                                 result = process_prediction_window()
@@ -324,15 +324,18 @@ def process_prediction_window():
                     
                     print(f"[Prediction] {prediction} | α={alpha:.2e} β={beta:.2e} ratio={ratio:.3f} conf={confidence:.1%}")
                     
-                    # Emit prediction
-                    socketio.emit('prediction_data', {
+                    # Emit prediction with broadcast
+                    prediction_data = {
                         'time': time.time() - state.prediction_start_time,
                         'alpha': float(alpha),
                         'beta': float(beta),
                         'ratio': float(ratio),
                         'state': prediction,
                         'confidence': float(confidence)
-                    })
+                    }
+                    
+                    print(f"[WebSocket] Emitting prediction_data: {prediction_data['state']}")
+                    socketio.emit('prediction_data', prediction_data, broadcast=True, namespace='/')
                     
                     return True  # Successfully made prediction
                     
@@ -342,6 +345,22 @@ def process_prediction_window():
                 traceback.print_exc()
     
     return False  # No prediction made
+
+# ==================== WEBSOCKET HANDLERS ====================
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f"\n{'='*60}")
+    print("WebSocket CLIENT CONNECTED")
+    print(f"{'='*60}\n")
+    emit('connection_response', {'data': 'Connected to EEG Monitor'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    print(f"\n{'='*60}")
+    print("WebSocket CLIENT DISCONNECTED")
+    print(f"{'='*60}\n")
 
 # ==================== ROUTES ====================
 @app.route('/')
