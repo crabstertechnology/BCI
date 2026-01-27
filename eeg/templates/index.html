@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Calmness Monitor</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131820;
+            --bg-tertiary: #1a1f2e;
+            --accent-cyan: #00e5ff;
+            --accent-magenta: #ff00aa;
+            --accent-green: #00ff88;
+            --accent-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border-color: #2d3748;
+            --calm-color: #00ff88;
+            --not-calm-color: #ff00aa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 229, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 170, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(0, 255, 136, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: gradientShift 20s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            border-bottom: 2px solid var(--border-color);
+            background: rgba(19, 24, 32, 0.8);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+        
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .status-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--accent-cyan);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .status-item.active::before {
+            opacity: 1;
+        }
+        
+        .status-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: var(--text-secondary);
+        }
+        
+        .status-indicator.connected {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 2s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Panels */
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            position: relative;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        
+        .panel:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-cyan);
+        }
+        
+        .panel-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Controls */
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+        
+        /* Buttons */
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), #0088cc);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 229, 255, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #00aa55);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-magenta), #cc0066);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 0, 170, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--accent-orange), #cc6600);
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .btn-full {
+            grid-column: 1 / -1;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            height: 350px;
+            position: relative;
+        }
+        
+        .chart-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Prediction Display */
+        .prediction-display {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        
+        .prediction-state {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .prediction-display.calm {
+            border-color: var(--calm-color);
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .prediction-display.calm .prediction-state {
+            color: var(--calm-color);
+            text-shadow: 0 0 20px var(--calm-color);
+        }
+        
+        .prediction-display.not-calm {
+            border-color: var(--not-calm-color);
+            background: rgba(255, 0, 170, 0.1);
+        }
+        
+        .prediction-display.not-calm .prediction-state {
+            color: var(--not-calm-color);
+            text-shadow: 0 0 20px var(--not-calm-color);
+        }
+        
+        .prediction-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+        }
+        
+        /* Messages */
+        .message {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .message-error {
+            background: rgba(255, 0, 170, 0.2);
+            border: 1px solid var(--accent-magenta);
+            color: var(--accent-magenta);
+        }
+        
+        .message-info {
+            background: rgba(0, 229, 255, 0.2);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--text-secondary);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 EEG Calmness Monitor</h1>
+            <div class="subtitle">Neural Signal Processing & Real-Time Classification</div>
+        </header>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item" id="connectionStatus">
+                <div class="status-label">Connection</div>
+                <div class="status-value">
+                    <span class="status-indicator"></span>
+                    <span id="connectionText">Disconnected</span>
+                </div>
+            </div>
+            <div class="status-item" id="modeStatus">
+                <div class="status-label">Mode</div>
+                <div class="status-value" id="modeText">Idle</div>
+            </div>
+            <div class="status-item" id="modelStatus">
+                <div class="status-label">Model Status</div>
+                <div class="status-value" id="modelText">Not Trained</div>
+            </div>
+            <div class="status-item" id="dataStatus">
+                <div class="status-label">Calibration Data</div>
+                <div class="status-value" id="dataText">None</div>
+            </div>
+        </div>
+        
+        <!-- Main Panels -->
+        <div class="panel-grid">
+            <!-- Connection Panel -->
+            <div class="panel">
+                <div class="panel-header">⚡ Connection</div>
+                <div class="control-group">
+                    <label for="portSelect">Serial Port</label>
+                    <select id="portSelect">
+                        <option value="">Select Port...</option>
+                    </select>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="connectBtn" onclick="connectPort()">
+                        <span>Connect</span>
+                    </button>
+                    <button class="btn btn-danger" id="disconnectBtn" onclick="disconnectPort()" disabled>
+                        <span>Disconnect</span>
+                    </button>
+                </div>
+                <div id="connectionMessage"></div>
+            </div>
+            
+            <!-- Calibration Panel -->
+            <div class="panel">
+                <div class="panel-header">📊 Calibration</div>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">
+                    Record EEG data for both calm and not calm states (5 minutes each recommended)
+                </p>
+                <div class="button-group">
+                    <button class="btn btn-success" id="recordCalmBtn" onclick="startRecording('calm')" disabled>
+                        <span>Record Calm</span>
+                    </button>
+                    <button class="btn btn-warning" id="recordNotCalmBtn" onclick="startRecording('not_calm')" disabled>
+                        <span>Record Not Calm</span>
+                    </button>
+                    <button class="btn btn-danger btn-full" id="stopRecordBtn" onclick="stopRecording()" disabled>
+                        <span>Stop Recording</span>
+                    </button>
+                </div>
+                <div id="calibrationMessage"></div>
+            </div>
+        </div>
+        
+        <!-- Training Panel -->
+        <div class="panel">
+            <div class="panel-header">🤖 Model Training</div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">
+                Train the machine learning model on collected calibration data
+            </p>
+            <button class="btn btn-primary" id="trainBtn" onclick="trainModel()" disabled style="width: 100%;">
+                <span>Train Model</span>
+            </button>
+            <div id="trainingMessage"></div>
+        </div>
+        
+        <!-- Prediction Panel -->
+        <div class="panel">
+            <div class="panel-header">🔮 Real-Time Prediction</div>
+            <div class="button-group">
+                <button class="btn btn-success" id="startPredictBtn" onclick="startPrediction()" disabled>
+                    <span>Start Prediction</span>
+                </button>
+                <button class="btn btn-danger" id="stopPredictBtn" onclick="stopPrediction()" disabled>
+                    <span>Stop Prediction</span>
+                </button>
+            </div>
+            <div id="predictionMessage"></div>
+            
+            <div class="prediction-display" id="predictionDisplay">
+                <div class="prediction-state">Waiting...</div>
+                <div class="prediction-metrics">
+                    <div class="metric">
+                        <div class="metric-label">Alpha Power</div>
+                        <div class="metric-value" id="alphaValue">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Beta Power</div>
+                        <div class="metric-value" id="betaValue">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">α/β Ratio</div>
+                        <div class="metric-value" id="ratioValue">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Waveform Chart -->
+        <div class="panel">
+            <div class="panel-header">📈 Live Waveform</div>
+            <div class="chart-container">
+                <canvas id="waveformChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Feature Chart (for prediction mode) -->
+        <div class="panel">
+            <div class="panel-header">📉 Feature Analysis</div>
+            <div class="chart-container">
+                <canvas id="featureChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Socket.IO connection
+        const socket = io();
+        
+        // Chart instances
+        let waveformChart = null;
+        let featureChart = null;
+        
+        // Data buffers
+        const waveformData = {
+            labels: [],
+            datasets: [{
+                label: 'EEG Signal (V)',
+                data: [],
+                borderColor: 'rgba(0, 229, 255, 1)',
+                backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        };
+        
+        const featureData = {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Alpha Power',
+                    data: [],
+                    borderColor: 'rgba(0, 255, 136, 1)',
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                    borderWidth: 2,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Beta Power',
+                    data: [],
+                    borderColor: 'rgba(255, 0, 170, 1)',
+                    backgroundColor: 'rgba(255, 0, 170, 0.1)',
+                    borderWidth: 2,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'α/β Ratio',
+                    data: [],
+                    borderColor: 'rgba(255, 136, 0, 1)',
+                    backgroundColor: 'rgba(255, 136, 0, 0.1)',
+                    borderWidth: 2,
+                    yAxisID: 'y1'
+                }
+            ]
+        };
+        
+        // Initialize charts
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#a0aec0',
+                            font: {
+                                family: "'IBM Plex Mono', monospace"
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(45, 55, 72, 0.5)'
+                        },
+                        ticks: {
+                            color: '#a0aec0',
+                            font: {
+                                family: "'IBM Plex Mono', monospace"
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(45, 55, 72, 0.5)'
+                        },
+                        ticks: {
+                            color: '#a0aec0',
+                            font: {
+                                family: "'IBM Plex Mono', monospace"
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Waveform chart
+            const waveformCtx = document.getElementById('waveformChart').getContext('2d');
+            waveformChart = new Chart(waveformCtx, {
+                type: 'line',
+                data: waveformData,
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            ...commonOptions.scales.y,
+                            title: {
+                                display: true,
+                                text: 'Voltage (V)',
+                                color: '#a0aec0'
+                            }
+                        },
+                        x: {
+                            ...commonOptions.scales.x,
+                            title: {
+                                display: true,
+                                text: 'Time (s)',
+                                color: '#a0aec0'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Feature chart
+            const featureCtx = document.getElementById('featureChart').getContext('2d');
+            featureChart = new Chart(featureCtx, {
+                type: 'line',
+                data: featureData,
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Power',
+                                color: '#a0aec0'
+                            },
+                            grid: {
+                                color: 'rgba(45, 55, 72, 0.5)'
+                            },
+                            ticks: {
+                                color: '#a0aec0'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'α/β Ratio',
+                                color: '#a0aec0'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            ticks: {
+                                color: '#a0aec0'
+                            }
+                        },
+                        x: {
+                            ...commonOptions.scales.x,
+                            title: {
+                                display: true,
+                                text: 'Time (s)',
+                                color: '#a0aec0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize on load
+        window.onload = function() {
+            initCharts();
+            loadPorts();
+            updateStatus();
+            setInterval(updateStatus, 2000);
+        };
+        
+        // Load available ports
+        async function loadPorts() {
+            try {
+                const response = await fetch('/api/ports');
+                const data = await response.json();
+                const select = document.getElementById('portSelect');
+                select.innerHTML = '<option value="">Select Port...</option>';
+                data.ports.forEach(port => {
+                    const option = document.createElement('option');
+                    option.value = port;
+                    option.textContent = port;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading ports:', error);
+            }
+        }
+        
+        // Update status
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                // Connection status
+                const connStatus = document.getElementById('connectionStatus');
+                const connText = document.getElementById('connectionText');
+                const connIndicator = connStatus.querySelector('.status-indicator');
+                
+                if (status.connected) {
+                    connText.textContent = status.port;
+                    connIndicator.classList.add('connected');
+                    connStatus.classList.add('active');
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('recordCalmBtn').disabled = false;
+                    document.getElementById('recordNotCalmBtn').disabled = false;
+                } else {
+                    connText.textContent = 'Disconnected';
+                    connIndicator.classList.remove('connected');
+                    connStatus.classList.remove('active');
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('recordCalmBtn').disabled = true;
+                    document.getElementById('recordNotCalmBtn').disabled = true;
+                }
+                
+                // Mode status
+                const modeText = document.getElementById('modeText');
+                const modeStatus = document.getElementById('modeStatus');
+                if (status.recording) {
+                    modeText.textContent = `Recording (${status.recording_mode})`;
+                    modeStatus.classList.add('active');
+                } else if (status.predicting) {
+                    modeText.textContent = 'Predicting';
+                    modeStatus.classList.add('active');
+                } else {
+                    modeText.textContent = 'Idle';
+                    modeStatus.classList.remove('active');
+                }
+                
+                // Model status
+                const modelText = document.getElementById('modelText');
+                const modelStatus = document.getElementById('modelStatus');
+                if (status.has_model) {
+                    modelText.textContent = 'Trained';
+                    modelStatus.classList.add('active');
+                    document.getElementById('startPredictBtn').disabled = !status.connected || status.recording || status.predicting;
+                } else {
+                    modelText.textContent = 'Not Trained';
+                    modelStatus.classList.remove('active');
+                    document.getElementById('startPredictBtn').disabled = true;
+                }
+                
+                // Data status
+                const dataText = document.getElementById('dataText');
+                const dataStatus = document.getElementById('dataStatus');
+                const parts = [];
+                if (status.has_calm_data) parts.push('Calm');
+                if (status.has_not_calm_data) parts.push('Not Calm');
+                
+                if (parts.length > 0) {
+                    dataText.textContent = parts.join(' + ');
+                    dataStatus.classList.add('active');
+                    document.getElementById('trainBtn').disabled = parts.length < 2;
+                } else {
+                    dataText.textContent = 'None';
+                    dataStatus.classList.remove('active');
+                    document.getElementById('trainBtn').disabled = true;
+                }
+                
+                // Update button states
+                if (status.recording) {
+                    document.getElementById('stopRecordBtn').disabled = false;
+                    document.getElementById('recordCalmBtn').disabled = true;
+                    document.getElementById('recordNotCalmBtn').disabled = true;
+                } else if (status.connected) {
+                    document.getElementById('stopRecordBtn').disabled = true;
+                    document.getElementById('recordCalmBtn').disabled = false;
+                    document.getElementById('recordNotCalmBtn').disabled = false;
+                }
+                
+                if (status.predicting) {
+                    document.getElementById('stopPredictBtn').disabled = false;
+                    document.getElementById('startPredictBtn').disabled = true;
+                }
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+        
+        // Connect to port
+        async function connectPort() {
+            const port = document.getElementById('portSelect').value;
+            if (!port) {
+                showMessage('connectionMessage', 'Please select a port', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({port})
+                });
+                const data = await response.json();
+                showMessage('connectionMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            } catch (error) {
+                showMessage('connectionMessage', 'Connection error: ' + error, 'error');
+            }
+        }
+        
+        // Disconnect
+        async function disconnectPort() {
+            try {
+                const response = await fetch('/api/disconnect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                showMessage('connectionMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            } catch (error) {
+                showMessage('connectionMessage', 'Disconnect error: ' + error, 'error');
+            }
+        }
+        
+        // Start recording
+        async function startRecording(mode) {
+            clearChartData(waveformChart);
+            try {
+                const response = await fetch('/api/start_recording', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({mode})
+                });
+                const data = await response.json();
+                showMessage('calibrationMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            } catch (error) {
+                showMessage('calibrationMessage', 'Recording error: ' + error, 'error');
+            }
+        }
+        
+        // Stop recording
+        async function stopRecording() {
+            try {
+                const response = await fetch('/api/stop_recording', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                showMessage('calibrationMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            } catch (error) {
+                showMessage('calibrationMessage', 'Stop recording error: ' + error, 'error');
+            }
+        }
+        
+        // Train model
+        async function trainModel() {
+            showMessage('trainingMessage', 'Training model... <span class="loading"></span>', 'info');
+            try {
+                const response = await fetch('/api/train_model', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                showMessage('trainingMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            } catch (error) {
+                showMessage('trainingMessage', 'Training error: ' + error, 'error');
+            }
+        }
+        
+        // Start prediction
+        async function startPrediction() {
+            clearChartData(waveformChart);
+            clearChartData(featureChart);
+            try {
+                const response = await fetch('/api/start_prediction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                showMessage('predictionMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            } catch (error) {
+                showMessage('predictionMessage', 'Prediction error: ' + error, 'error');
+            }
+        }
+        
+        // Stop prediction
+        async function stopPrediction() {
+            try {
+                const response = await fetch('/api/stop_prediction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                showMessage('predictionMessage', data.message, data.success ? 'success' : 'error');
+                updateStatus();
+                
+                // Reset prediction display
+                const display = document.getElementById('predictionDisplay');
+                display.className = 'prediction-display';
+                display.querySelector('.prediction-state').textContent = 'Waiting...';
+            } catch (error) {
+                showMessage('predictionMessage', 'Stop prediction error: ' + error, 'error');
+            }
+        }
+        
+        // Show message
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="message message-${type}">${message}</div>`;
+        }
+        
+        // Clear chart data
+        function clearChartData(chart) {
+            chart.data.labels = [];
+            chart.data.datasets.forEach(dataset => {
+                dataset.data = [];
+            });
+            chart.update();
+        }
+        
+        // Socket.IO event handlers
+        socket.on('waveform_data', function(data) {
+            // Add to chart (keep last 500 points)
+            waveformChart.data.labels.push(data.time.toFixed(2));
+            waveformChart.data.datasets[0].data.push(data.voltage);
+            
+            if (waveformChart.data.labels.length > 500) {
+                waveformChart.data.labels.shift();
+                waveformChart.data.datasets[0].data.shift();
+            }
+            
+            waveformChart.update('none');
+        });
+        
+        socket.on('prediction_data', function(data) {
+            // Update prediction display
+            const display = document.getElementById('predictionDisplay');
+            display.className = 'prediction-display ' + (data.state === 'Calm' ? 'calm' : 'not-calm');
+            display.querySelector('.prediction-state').textContent = data.state;
+            
+            document.getElementById('alphaValue').textContent = data.alpha.toExponential(2);
+            document.getElementById('betaValue').textContent = data.beta.toExponential(2);
+            document.getElementById('ratioValue').textContent = data.ratio.toFixed(3);
+            
+            // Add to feature chart
+            featureChart.data.labels.push(data.time.toFixed(1));
+            featureChart.data.datasets[0].data.push(data.alpha);
+            featureChart.data.datasets[1].data.push(data.beta);
+            featureChart.data.datasets[2].data.push(data.ratio);
+            
+            // Keep last 50 points
+            if (featureChart.data.labels.length > 50) {
+                featureChart.data.labels.shift();
+                featureChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            
+            featureChart.update('none');
+        });
+    </script>
+</body>
+</html>
