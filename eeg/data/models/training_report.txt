@@ -1,18 +1,18 @@
 EEG CALMNESS MODEL TRAINING REPORT
 ==================================================
 
-Training Date: 2026-01-27 10:49:34
-Total Samples: 310
-Calm Samples: 140
-Not Calm Samples: 170
-Test Accuracy: 64.52%
+Training Date: 2026-01-30 10:01:58
+Total Samples: 320
+Calm Samples: 157
+Not Calm Samples: 163
+Test Accuracy: 59.38%
 
 Classification Report:
               precision    recall  f1-score   support
 
-        Calm       0.76      0.31      0.44        42
-    Not Calm       0.62      0.92      0.74        51
+        Calm       0.57      0.70      0.63        47
+    Not Calm       0.63      0.49      0.55        49
 
-    accuracy                           0.65        93
-   macro avg       0.69      0.62      0.59        93
-weighted avg       0.68      0.65      0.60        93
+    accuracy                           0.59        96
+   macro avg       0.60      0.60      0.59        96
+weighted avg       0.60      0.59      0.59        96
