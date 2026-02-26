@@ -391,54 +391,181 @@
             display: none; pointer-events: none;
         }
 
-        /* ── Results overlay ── */
+        /* ── Patient Report Overlay ── */
         #results-overlay {
             position: absolute; inset: 0; z-index: 100;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(0,0,10,0.92); backdrop-filter: blur(16px);
+            display: flex; align-items: flex-start; justify-content: center;
+            background: rgba(0,0,10,0.96); backdrop-filter: blur(20px);
             opacity: 0; pointer-events: none;
-            transition: opacity 0.9s ease;
+            transition: opacity 0.7s ease;
+            overflow-y: auto;
+            padding: 20px 16px 40px;
         }
         #results-overlay.show { opacity: 1; pointer-events: all; }
-        #results-card { text-align: center; color: #fff; max-width: 380px; width: 90%; }
-        #results-card h2 {
-            font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900;
-            letter-spacing: 0.2em; margin-bottom: 4px;
+
+        /* Report card */
+        #results-card {
+            width: 100%; max-width: 680px;
+            color: #fff;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* ── Report Header ── */
+        .report-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 18px; margin-bottom: 24px;
+        }
+        .report-header-left h2 {
+            font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+            letter-spacing: 0.3em; text-transform: uppercase;
+            color: rgba(255,255,255,0.35); margin-bottom: 6px;
+        }
+        .report-title {
+            font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900;
+            letter-spacing: 0.12em;
             background: linear-gradient(135deg, #80d8ff, #ea80fc);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .r-sub {
-            font-size: 9px; letter-spacing: 0.35em; color: rgba(255,255,255,0.25);
-            text-transform: uppercase; margin-bottom: 36px;
-            font-family: 'Lato', sans-serif;
+        .report-meta {
+            margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.3);
+            letter-spacing: 0.08em; line-height: 1.7;
         }
-        .stat-row {
-            display: flex; justify-content: space-between; align-items: baseline;
-            margin-bottom: 14px; padding-bottom: 14px;
+        .report-header-right { text-align: right; }
+        .focus-score-ring { position: relative; width: 90px; height: 90px; }
+        .focus-score-ring svg { transform: rotate(-90deg); }
+        .focus-score-center {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .focus-score-num {
+            font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900;
+            line-height: 1;
+        }
+        .focus-score-lbl {
+            font-size: 7px; letter-spacing: 0.15em; text-transform: uppercase;
+            color: rgba(255,255,255,0.4); margin-top: 2px;
+        }
+
+        /* ── Section titles ── */
+        .report-section-title {
+            font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
+            letter-spacing: 0.3em; text-transform: uppercase;
+            color: rgba(255,255,255,0.25);
+            margin-bottom: 12px; padding-bottom: 6px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .stat-row:last-of-type { border-bottom: none; }
-        .s-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.3); font-family:'Lato',sans-serif; }
-        .s-val { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; color: rgba(255,255,255,0.9); }
-        .s-val small { font-size: 11px; opacity: 0.45; margin-left: 3px; }
-        #compare-badge {
-            display: inline-block; margin-top: 20px;
-            padding: 8px 24px; border-radius: 30px;
-            font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
-            font-family: 'Lato', sans-serif;
+
+        /* ── KPI grid ── */
+        .kpi-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px; margin-bottom: 22px;
         }
+        .kpi-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; padding: 14px 10px;
+            text-align: center;
+        }
+        .kpi-card.highlight {
+            background: rgba(128,216,255,0.06);
+            border-color: rgba(128,216,255,0.2);
+        }
+        .kpi-val {
+            font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900;
+            color: #fff; line-height: 1;
+        }
+        .kpi-val small { font-size: 10px; opacity: 0.5; margin-left: 2px; }
+        .kpi-lbl {
+            margin-top: 5px; font-size: 8px; letter-spacing: 0.15em;
+            text-transform: uppercase; color: rgba(255,255,255,0.3);
+        }
+
+        /* ── EEG timeline chart ── */
+        .chart-wrap {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 14px;
+            margin-bottom: 22px;
+        }
+        #report-chart { width: 100%; height: 120px; }
+
+        /* ── State breakdown bar ── */
+        .state-bar-wrap { margin-bottom: 22px; }
+        .state-bar-track {
+            height: 28px; border-radius: 6px; overflow: hidden;
+            display: flex; margin-bottom: 8px;
+        }
+        .state-bar-calm  { background: linear-gradient(90deg, #00c97a, #00ff88); transition: width 1.2s ease; }
+        .state-bar-hover { background: linear-gradient(90deg, #e6a800, #ffe066); transition: width 1.2s ease; }
+        .state-bar-fall  { background: linear-gradient(90deg, #c0334d, #ff6b6b); transition: width 1.2s ease; }
+        .state-legend {
+            display: flex; gap: 20px; font-size: 9px;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+        }
+        .legend-dot {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; margin-right: 5px; vertical-align: middle;
+        }
+
+        /* ── Clinical interpretation ── */
+        .interpretation-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-left: 3px solid;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 18px;
+            margin-bottom: 22px;
+        }
+        .interpretation-box.good   { border-left-color: #00ff88; }
+        .interpretation-box.fair   { border-left-color: #ffe066; }
+        .interpretation-box.poor   { border-left-color: #ff6b6b; }
+        .interp-grade {
+            font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 900;
+            letter-spacing: 0.1em; margin-bottom: 6px;
+        }
+        .interp-text {
+            font-size: 11px; color: rgba(255,255,255,0.55);
+            line-height: 1.7; letter-spacing: 0.02em;
+        }
+
+        /* ── Metrics table ── */
+        .metrics-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 11px; }
+        .metrics-table tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .metrics-table tr:last-child { border-bottom: none; }
+        .metrics-table td { padding: 9px 4px; vertical-align: middle; }
+        .metrics-table td:first-child { color: rgba(255,255,255,0.4); letter-spacing: 0.08em; font-size: 10px; text-transform: uppercase; width: 45%; }
+        .metrics-table td:last-child { text-align: right; font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; }
+        .metrics-table .bar-cell { width: 30%; padding: 0 12px; }
+        .mini-bar-track { height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; }
+        .mini-bar-fill  { height: 100%; border-radius: 2px; }
+
+        /* ── Footer buttons ── */
+        .report-footer {
+            display: flex; gap: 10px; justify-content: center;
+            margin-top: 10px; flex-wrap: wrap;
+        }
+        .r-btn {
+            font-family: 'Lato', sans-serif; font-weight: 300; font-size: 10px;
+            letter-spacing: 0.22em; text-transform: uppercase;
+            border-radius: 20px; padding: 10px 24px; cursor: pointer; transition: all .3s;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.45); background: none;
+        }
+        .r-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .r-btn.primary {
+            background: rgba(128,216,255,0.12); border-color: rgba(128,216,255,0.35);
+            color: #80d8ff;
+        }
+        .r-btn.primary:hover { background: rgba(128,216,255,0.22); }
+
+        /* badges */
         .b-improved { background: rgba(80,220,140,0.14); color: #80e6aa; border: 1px solid rgba(80,220,140,0.3); }
         .b-same     { background: rgba(200,175,80,0.14); color: #e6cc70; border: 1px solid rgba(200,175,80,0.3); }
         .b-needs    { background: rgba(220,80,80,0.12);  color: #e69090; border: 1px solid rgba(220,80,80,0.25); }
-        #results-close {
-            display: block; margin: 26px auto 0;
-            background: none; border: 1px solid rgba(255,255,255,0.18);
-            color: rgba(255,255,255,0.4); font-family: 'Lato', sans-serif; font-weight: 300;
-            font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
-            padding: 10px 28px; border-radius: 20px; cursor: pointer; transition: all .3s;
-        }
-        #results-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
 
         /* Custom cursor */
         #cursor-dot {
@@ -605,30 +732,138 @@
     </div>
     <div id="demo-note">← Demo controls · EEG signal fires the rocket automatically</div>
 
-    <!-- Results overlay -->
+    <!-- Patient Report Overlay -->
     <div id="results-overlay">
-        <div id="results-card">
-            <h2>MISSION COMPLETE</h2>
-            <p class="r-sub">Mindful Ascent · Flight Report</p>
-            <div class="stat-row">
-                <span class="s-label">Max Altitude</span>
-                <span class="s-val"><span id="r-max-val">–</span><small>km</small></span>
+      <div id="results-card">
+
+        <!-- ── Header ── -->
+        <div class="report-header">
+          <div class="report-header-left">
+            <h2>EEG Neurofeedback Assessment</h2>
+            <div class="report-title">PATIENT REPORT</div>
+            <div class="report-meta">
+              <div id="r-date">–</div>
+              <div id="r-session-id">Session ID: –</div>
+              <div id="r-eeg-source">Signal Source: –</div>
             </div>
-            <div class="stat-row">
-                <span class="s-label">Longest Thrust</span>
-                <span class="s-val"><span id="r-float">–</span><small>s</small></span>
+          </div>
+          <div class="report-header-right">
+            <div class="focus-score-ring">
+              <svg width="90" height="90" viewBox="0 0 90 90">
+                <circle cx="45" cy="45" r="38" fill="none"
+                  stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
+                <circle id="focus-ring-arc" cx="45" cy="45" r="38" fill="none"
+                  stroke="#80d8ff" stroke-width="7" stroke-linecap="round"
+                  stroke-dasharray="239" stroke-dashoffset="239"/>
+              </svg>
+              <div class="focus-score-center">
+                <div class="focus-score-num" id="r-focus-score">–</div>
+                <div class="focus-score-lbl">Focus</div>
+              </div>
             </div>
-            <div class="stat-row">
-                <span class="s-label">Stable Time</span>
-                <span class="s-val"><span id="r-stable">–</span><small>s</small></span>
+            <div style="text-align:center; margin-top:6px;">
+              <span id="compare-badge" class="b-same" style="font-size:8px; letter-spacing:0.15em; text-transform:uppercase; padding:4px 12px; border-radius:20px; font-family:'Lato',sans-serif;">–</span>
             </div>
-            <div class="stat-row">
-                <span class="s-label">Mission Duration</span>
-                <span class="s-val"><span id="r-duration">–</span><small>s</small></span>
-            </div>
-            <div><span id="compare-badge" class="b-same">–</span></div>
-            <button id="results-close" onclick="closeResults()">Launch Again</button>
+          </div>
         </div>
+
+        <!-- ── KPI Grid ── -->
+        <div class="report-section-title">Flight Performance</div>
+        <div class="kpi-grid">
+          <div class="kpi-card highlight">
+            <div class="kpi-val"><span id="r-max-val">–</span><small>km</small></div>
+            <div class="kpi-lbl">Max Altitude</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val"><span id="r-duration">–</span><small>s</small></div>
+            <div class="kpi-lbl">Duration</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val"><span id="r-float">–</span><small>s</small></div>
+            <div class="kpi-lbl">Longest Thrust</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val"><span id="r-stable">–</span><small>s</small></div>
+            <div class="kpi-lbl">Stable Time</div>
+          </div>
+        </div>
+
+        <!-- ── EEG Timeline Chart ── -->
+        <div class="report-section-title">EEG Calm Level — Session Timeline</div>
+        <div class="chart-wrap">
+          <canvas id="report-chart" height="120"></canvas>
+        </div>
+
+        <!-- ── State Breakdown ── -->
+        <div class="report-section-title">Brain State Distribution</div>
+        <div class="state-bar-wrap">
+          <div class="state-bar-track">
+            <div class="state-bar-calm"  id="r-bar-calm"  style="width:0%"></div>
+            <div class="state-bar-hover" id="r-bar-hover" style="width:0%"></div>
+            <div class="state-bar-fall"  id="r-bar-fall"  style="width:0%"></div>
+          </div>
+          <div class="state-legend">
+            <span><span class="legend-dot" style="background:#00ff88"></span>Calm <span id="r-pct-calm" style="color:#fff;margin-left:4px">–%</span></span>
+            <span><span class="legend-dot" style="background:#ffe066"></span>Neutral <span id="r-pct-hover" style="color:#fff;margin-left:4px">–%</span></span>
+            <span><span class="legend-dot" style="background:#ff6b6b"></span>Not Calm <span id="r-pct-fall" style="color:#fff;margin-left:4px">–%</span></span>
+          </div>
+        </div>
+
+        <!-- ── Detailed Metrics ── -->
+        <div class="report-section-title">Detailed EEG Metrics</div>
+        <table class="metrics-table">
+          <tr>
+            <td>Avg Alpha Power</td>
+            <td class="bar-cell"><div class="mini-bar-track"><div class="mini-bar-fill" id="r-bar-alpha" style="width:0%;background:#80d8ff"></div></div></td>
+            <td id="r-alpha-val">–</td>
+          </tr>
+          <tr>
+            <td>Avg Beta Power</td>
+            <td class="bar-cell"><div class="mini-bar-track"><div class="mini-bar-fill" id="r-bar-beta" style="width:0%;background:#ea80fc"></div></div></td>
+            <td id="r-beta-val">–</td>
+          </tr>
+          <tr>
+            <td>Alpha/Beta Ratio</td>
+            <td class="bar-cell"><div class="mini-bar-track"><div class="mini-bar-fill" id="r-bar-ratio" style="width:0%;background:#b9f6ca"></div></div></td>
+            <td id="r-ratio-val">–</td>
+          </tr>
+          <tr>
+            <td>Peak Calm Confidence</td>
+            <td class="bar-cell"><div class="mini-bar-track"><div class="mini-bar-fill" id="r-bar-conf" style="width:0%;background:#ffe57f"></div></div></td>
+            <td id="r-conf-val">–</td>
+          </tr>
+          <tr>
+            <td>EEG Variability</td>
+            <td class="bar-cell"><div class="mini-bar-track"><div class="mini-bar-fill" id="r-bar-var" style="width:0%;background:#ff9e80"></div></div></td>
+            <td id="r-var-val">–</td>
+          </tr>
+          <tr>
+            <td>State Transitions</td>
+            <td class="bar-cell"><div class="mini-bar-track"><div class="mini-bar-fill" id="r-bar-trans" style="width:0%;background:#cfd8dc"></div></div></td>
+            <td id="r-trans-val">–</td>
+          </tr>
+        </table>
+
+        <!-- ── Clinical Interpretation ── -->
+        <div class="report-section-title">Clinical Interpretation</div>
+        <div class="interpretation-box" id="r-interp-box">
+          <div class="interp-grade" id="r-interp-grade">–</div>
+          <div class="interp-text"  id="r-interp-text">–</div>
+        </div>
+
+        <!-- ── Recommendations ── -->
+        <div class="report-section-title">Recommendations</div>
+        <div class="interpretation-box" id="r-recommend-box" style="border-left-color: rgba(255,255,255,0.2)">
+          <div class="interp-text" id="r-recommend-text">–</div>
+        </div>
+
+        <!-- ── Footer ── -->
+        <div class="report-footer">
+          <button class="r-btn primary" onclick="exportReport()">⬇ Export PDF</button>
+          <button class="r-btn" onclick="closeResults()">✦ Launch Again</button>
+        </div>
+
+      </div>
     </div>
 </div>
 
@@ -681,6 +916,13 @@ const G = {
     longestThrust: 0,
     currentThrust: 0,
     timerInterval: null,
+
+    // session data log (sampled every 500ms)
+    sessionLog: [],        // [{t, calmLevel, alpha, beta, ratio, confidence, state}]
+    eegStats: { alpha:[], beta:[], ratio:[], confidence:[], transitions:0, lastState:null },
+    logInterval: null,
+    sessionId: null,
+    eegSourceLabel: 'Demo Mode',
 
     // canvas rendering state
     canvas: null, ctx: null,
@@ -1407,6 +1649,12 @@ function toggleSession() {
         G.shake          = 0;
         sessionSecs      = 0;
 
+        // Init session log
+        G.sessionLog     = [];
+        G.eegStats       = { alpha:[], beta:[], ratio:[], confidence:[], transitions:0, lastState:null };
+        G.sessionId      = 'SES-' + Date.now().toString(36).toUpperCase();
+        G.eegSourceLabel = document.getElementById('eeg-source-label').textContent;
+
         document.getElementById('gBtn-session').textContent = 'End Mission';
         document.getElementById('gBtn-session').classList.add('active');
         document.getElementById('session-timer').style.display = 'block';
@@ -1418,6 +1666,21 @@ function toggleSession() {
             const s = String(sessionSecs % 60).padStart(2, '0');
             document.getElementById('session-timer').textContent = `${m}:${s}`;
         }, 1000);
+
+        // Sample calm level every 500ms for timeline chart
+        G.logInterval = setInterval(() => {
+            if (!G.sessionActive) return;
+            G.sessionLog.push({
+                t:          sessionSecs,
+                calmLevel:  G.calmLevel,
+                alpha:      G._lastAlpha || 0,
+                beta:       G._lastBeta  || 0,
+                ratio:      G._lastRatio || 0,
+                confidence: G._lastConf  || 0,
+                state:      G.calmLevel >= 0.75 ? 'calm' : G.calmLevel >= 0.35 ? 'hover' : 'fall'
+            });
+        }, 500);
+
     } else {
         endSession();
     }
@@ -1429,6 +1692,7 @@ function endSession() {
     G.velocity = 0;
     G.shake = 0;
     clearInterval(G.timerInterval);
+    clearInterval(G.logInterval);
 
     document.getElementById('gBtn-session').textContent = 'Start Session';
     document.getElementById('gBtn-session').classList.remove('active');
@@ -1439,32 +1703,219 @@ function endSession() {
 }
 
 function showResults() {
+    const log  = G.sessionLog;
     const best = G.prevBestAlt;
     const cur  = G.maxAlt;
+    const dur  = sessionSecs;
 
-    document.getElementById('r-max-val').textContent = cur.toFixed(1);
-    document.getElementById('r-float').textContent   = G.longestThrust.toFixed(1);
-    document.getElementById('r-stable').textContent  = G.stableTime.toFixed(1);
-    document.getElementById('r-duration').textContent = sessionSecs;
+    // ── Date / meta ──
+    const now = new Date();
+    document.getElementById('r-date').textContent =
+        now.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) +
+        ' · ' + now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('r-session-id').textContent  = 'Session ID: ' + G.sessionId;
+    document.getElementById('r-eeg-source').textContent  = 'Signal Source: ' + G.eegSourceLabel;
 
+    // ── KPIs ──
+    document.getElementById('r-max-val').textContent  = cur.toFixed(1);
+    document.getElementById('r-duration').textContent = dur;
+    document.getElementById('r-float').textContent    = G.longestThrust.toFixed(1);
+    document.getElementById('r-stable').textContent   = G.stableTime.toFixed(1);
+
+    // ── State distribution ──
+    const total   = log.length || 1;
+    const calmCt  = log.filter(s => s.state === 'calm').length;
+    const hoverCt = log.filter(s => s.state === 'hover').length;
+    const fallCt  = log.filter(s => s.state === 'fall').length;
+    const pctC = (calmCt / total * 100).toFixed(0);
+    const pctH = (hoverCt / total * 100).toFixed(0);
+    const pctF = (fallCt  / total * 100).toFixed(0);
+
+    // Animate bars after slight delay
+    setTimeout(() => {
+        document.getElementById('r-bar-calm').style.width  = pctC + '%';
+        document.getElementById('r-bar-hover').style.width = pctH + '%';
+        document.getElementById('r-bar-fall').style.width  = pctF + '%';
+    }, 300);
+    document.getElementById('r-pct-calm').textContent  = pctC + '%';
+    document.getElementById('r-pct-hover').textContent = pctH + '%';
+    document.getElementById('r-pct-fall').textContent  = pctF + '%';
+
+    // ── Focus score (0-100) ──
+    // Weighted: calm=1.0, hover=0.5, fall=0
+    const focusScore = Math.round((calmCt * 1.0 + hoverCt * 0.5) / total * 100);
+    document.getElementById('r-focus-score').textContent = focusScore;
+    // Animate ring (circumference 239)
+    setTimeout(() => {
+        const offset = 239 - (focusScore / 100) * 239;
+        const arc = document.getElementById('focus-ring-arc');
+        arc.style.transition = 'stroke-dashoffset 1.4s ease';
+        arc.style.strokeDashoffset = offset;
+        arc.style.stroke = focusScore >= 65 ? '#80e6aa' : focusScore >= 40 ? '#ffe066' : '#ff6b6b';
+    }, 400);
+
+    // ── EEG Metrics ──
+    const alphas = log.map(s => s.alpha).filter(v => v > 0);
+    const betas  = log.map(s => s.beta).filter(v => v > 0);
+    const ratios = log.map(s => s.ratio).filter(v => v > 0);
+    const confs  = log.map(s => s.confidence).filter(v => v > 0);
+
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+    const avgAlpha = avg(alphas);
+    const avgBeta  = avg(betas);
+    const avgRatio = avg(ratios);
+    const avgConf  = avg(confs);
+    const maxConf  = confs.length ? Math.max(...confs) : 0;
+
+    // Variability = std of calm level over time
+    const levels = log.map(s => s.calmLevel);
+    const meanL  = avg(levels);
+    const stdev  = levels.length > 1
+        ? Math.sqrt(levels.reduce((s,v) => s + (v-meanL)**2, 0) / levels.length)
+        : 0;
+    const variabilityScore = Math.round(stdev * 100); // 0-50ish
+
+    // Transitions
+    let transitions = 0;
+    for (let i = 1; i < log.length; i++) {
+        if (log[i].state !== log[i-1].state) transitions++;
+    }
+
+    // Show metrics
+    const hasEEG = avgAlpha > 0;
+    document.getElementById('r-alpha-val').textContent = hasEEG ? avgAlpha.toExponential(2) : 'N/A';
+    document.getElementById('r-beta-val').textContent  = hasEEG ? avgBeta.toExponential(2)  : 'N/A';
+    document.getElementById('r-ratio-val').textContent = hasEEG ? avgRatio.toFixed(3)        : 'N/A';
+    document.getElementById('r-conf-val').textContent  = hasEEG ? (maxConf * 100).toFixed(0) + '%' : 'N/A';
+    document.getElementById('r-var-val').textContent   = variabilityScore + '%';
+    document.getElementById('r-trans-val').textContent = transitions;
+
+    setTimeout(() => {
+        document.getElementById('r-bar-alpha').style.width = hasEEG ? Math.min(100, avgAlpha * 1e6) + '%' : '0%';
+        document.getElementById('r-bar-beta').style.width  = hasEEG ? Math.min(100, avgBeta  * 1e6) + '%' : '0%';
+        document.getElementById('r-bar-ratio').style.width = hasEEG ? Math.min(100, avgRatio * 80)  + '%' : '0%';
+        document.getElementById('r-bar-conf').style.width  = hasEEG ? (maxConf * 100) + '%'          : '0%';
+        document.getElementById('r-bar-var').style.width   = Math.min(100, variabilityScore * 2)     + '%';
+        document.getElementById('r-bar-trans').style.width = Math.min(100, transitions * 5)           + '%';
+    }, 500);
+
+    // ── Best badge ──
     const badge = document.getElementById('compare-badge');
     if (cur > best + 5) {
-        badge.textContent = '↑ New Record!';
+        badge.textContent = '↑ Personal Best';
         badge.className = 'b-improved';
+        localStorage.setItem('rocket_best_alt', cur);
+        G.prevBestAlt = cur;
     } else if (cur < best - 5) {
-        badge.textContent = '↓ Keep Practicing';
+        badge.textContent = '↓ Below Best';
         badge.className = 'b-needs';
     } else {
         badge.textContent = '→ Consistent';
         badge.className = 'b-same';
     }
 
-    if (cur > best) {
-        localStorage.setItem('rocket_best_alt', cur);
-        G.prevBestAlt = cur;
+    // ── Clinical interpretation ──
+    const box    = document.getElementById('r-interp-box');
+    const grade  = document.getElementById('r-interp-grade');
+    const text   = document.getElementById('r-interp-text');
+    const recBox = document.getElementById('r-recommend-box');
+    const recTxt = document.getElementById('r-recommend-text');
+
+    if (focusScore >= 70) {
+        box.className = 'interpretation-box good';
+        grade.style.color = '#80e6aa';
+        grade.textContent = 'Excellent Focus — Grade A';
+        text.textContent  = 'The patient demonstrated sustained alpha dominance throughout the session, indicating a well-regulated, calm cognitive state. High alpha/beta ratio suggests effective relaxation response with minimal stress-driven beta activity. This level of self-regulation is consistent with an advanced neurofeedback responder.';
+        recBox.style.borderLeftColor = '#80e6aa';
+        recTxt.textContent = '✦ Continue current neurofeedback protocol at this intensity. ✦ Consider progressing to more demanding cognitive tasks to maintain challenge. ✦ Schedule follow-up session in 1 week to track consistency.';
+    } else if (focusScore >= 45) {
+        box.className = 'interpretation-box fair';
+        grade.style.color = '#ffe066';
+        grade.textContent = 'Moderate Focus — Grade B';
+        text.textContent  = 'The patient exhibited mixed alpha and beta states, with periods of good self-regulation interspersed with elevated stress markers. The alpha/beta ratio fluctuated, suggesting the patient is developing but has not yet consolidated a reliable calm response. State transitions indicate active but inconsistent modulation.';
+        recBox.style.borderLeftColor = '#ffe066';
+        recTxt.textContent = '✦ Practice slow diaphragmatic breathing exercises before sessions. ✦ Introduce 5-minute mindfulness warm-up prior to EEG testing. ✦ Repeat this protocol 3× per week. ✦ Review session waveforms for spike patterns.';
+    } else {
+        box.className = 'interpretation-box poor';
+        grade.style.color = '#ff6b6b';
+        grade.textContent = 'Low Focus — Grade C';
+        text.textContent  = 'The session shows predominant beta activity with limited alpha emergence, indicating elevated cognitive arousal and reduced relaxation response. Frequent state transitions suggest difficulty maintaining a consistent mental state. This may reflect session anxiety, external distraction, or insufficient prior neurofeedback training.';
+        recBox.style.borderLeftColor = '#ff6b6b';
+        recTxt.textContent = '✦ Begin with a shorter 3-minute guided relaxation session before testing. ✦ Reduce environmental stimuli and ensure comfortable seating position. ✦ Consider alpha-theta protocol as a precursor to this test. ✦ Re-evaluate in 2 sessions before drawing clinical conclusions.';
     }
 
+    // ── Timeline chart ──
+    buildReportChart(log);
+
     document.getElementById('results-overlay').classList.add('show');
+}
+
+let reportChartInstance = null;
+function buildReportChart(log) {
+    const canvas = document.getElementById('report-chart');
+    if (!canvas) return;
+    if (reportChartInstance) { reportChartInstance.destroy(); reportChartInstance = null; }
+
+    const labels    = log.map(s => s.t + 's');
+    const calmData  = log.map(s => +(s.calmLevel * 100).toFixed(1));
+
+    // Color each point
+    const pointColors = calmData.map(v =>
+        v >= 75 ? '#00ff88' : v >= 35 ? '#ffe066' : '#ff6b6b'
+    );
+
+    // Build a gradient fill
+    const ctx2 = canvas.getContext('2d');
+    const gradFill = ctx2.createLinearGradient(0, 0, 0, 120);
+    gradFill.addColorStop(0,   'rgba(0,255,136,0.3)');
+    gradFill.addColorStop(0.5, 'rgba(255,224,102,0.15)');
+    gradFill.addColorStop(1,   'rgba(255,107,107,0.05)');
+
+    reportChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Calm Level %',
+                data: calmData,
+                fill: true,
+                backgroundColor: gradFill,
+                borderColor: 'rgba(128,216,255,0.7)',
+                borderWidth: 1.5,
+                pointRadius: calmData.length < 60 ? 3 : 0,
+                pointBackgroundColor: pointColors,
+                tension: 0.4,
+            }]
+        },
+        options: {
+            responsive: false,
+            animation: { duration: 1000 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `Calm: ${ctx.raw}%  |  State: ${ctx.raw >= 75 ? 'Calm' : ctx.raw >= 35 ? 'Neutral' : 'Not Calm'}`
+                    },
+                    backgroundColor: 'rgba(0,0,20,0.9)',
+                    titleColor: 'rgba(255,255,255,0.5)',
+                    bodyColor: '#fff',
+                    padding: 8,
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: 'rgba(255,255,255,0.2)', font:{size:8}, maxTicksLimit:10 },
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                },
+                y: {
+                    min: 0, max: 100,
+                    ticks: { color: 'rgba(255,255,255,0.25)', font:{size:8},
+                             callback: v => v + '%', stepSize: 25 },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                }
+            }
+        }
+    });
 }
 
 function closeResults() {
@@ -1472,6 +1923,72 @@ function closeResults() {
     G.altitude = 0;
     G.velocity = 0;
     G.worldY   = 0;
+}
+
+function exportReport() {
+    const el = document.getElementById('results-card');
+    // Fallback: open a new window with the report HTML
+    const w = window.open('', '_blank');
+    const style = `
+        body { background:#000; color:#fff; font-family:monospace; padding:30px; max-width:700px; margin:auto; }
+        h1   { font-size:18px; letter-spacing:.2em; margin-bottom:4px; color:#80d8ff; }
+        .meta{ font-size:11px; color:#666; margin-bottom:24px; }
+        .section { margin-bottom:20px; }
+        .section h2 { font-size:10px; letter-spacing:.25em; text-transform:uppercase; color:#555; border-bottom:1px solid #222; padding-bottom:6px; margin-bottom:12px; }
+        table { width:100%; border-collapse:collapse; font-size:12px; }
+        td    { padding:7px 4px; border-bottom:1px solid #1a1a1a; }
+        td:last-child { text-align:right; font-weight:bold; color:#80d8ff; }
+        .interp { background:#0a1a0a; border-left:3px solid #00ff88; padding:12px; font-size:12px; line-height:1.7; color:#aaa; }
+        .footer { margin-top:30px; font-size:10px; color:#333; text-align:center; }
+    `;
+    const log = G.sessionLog;
+    const total = log.length || 1;
+    const calmCt  = log.filter(s=>s.state==='calm').length;
+    const hoverCt = log.filter(s=>s.state==='hover').length;
+    const fallCt  = log.filter(s=>s.state==='fall').length;
+    const focusScore = Math.round((calmCt*1.0+hoverCt*0.5)/total*100);
+    const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+    const alphas = log.map(s=>s.alpha).filter(v=>v>0);
+    const betas  = log.map(s=>s.beta).filter(v=>v>0);
+    const ratios = log.map(s=>s.ratio).filter(v=>v>0);
+    const avgA = avg(alphas), avgB = avg(betas), avgR = avg(ratios);
+    const now = new Date().toLocaleString();
+
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>EEG Patient Report</title><style>${style}</style></head><body>
+        <h1>EEG NEUROFEEDBACK ASSESSMENT — PATIENT REPORT</h1>
+        <div class="meta">
+            Generated: ${now}<br>
+            Session ID: ${G.sessionId}<br>
+            Signal Source: ${G.eegSourceLabel}<br>
+            Duration: ${sessionSecs}s · Max Altitude: ${G.maxAlt.toFixed(1)} km · Focus Score: ${focusScore}/100
+        </div>
+        <div class="section"><h2>Flight Performance</h2>
+        <table>
+            <tr><td>Max Altitude</td><td>${G.maxAlt.toFixed(1)} km</td></tr>
+            <tr><td>Session Duration</td><td>${sessionSecs} s</td></tr>
+            <tr><td>Longest Thrust</td><td>${G.longestThrust.toFixed(1)} s</td></tr>
+            <tr><td>Stable Time</td><td>${G.stableTime.toFixed(1)} s</td></tr>
+        </table></div>
+        <div class="section"><h2>Brain State Distribution</h2>
+        <table>
+            <tr><td>Calm</td><td>${(calmCt/total*100).toFixed(0)}%</td></tr>
+            <tr><td>Neutral</td><td>${(hoverCt/total*100).toFixed(0)}%</td></tr>
+            <tr><td>Not Calm</td><td>${(fallCt/total*100).toFixed(0)}%</td></tr>
+        </table></div>
+        <div class="section"><h2>EEG Metrics</h2>
+        <table>
+            <tr><td>Avg Alpha Power</td><td>${alphas.length ? avgA.toExponential(2) : 'N/A'}</td></tr>
+            <tr><td>Avg Beta Power</td><td>${betas.length  ? avgB.toExponential(2) : 'N/A'}</td></tr>
+            <tr><td>Alpha/Beta Ratio</td><td>${ratios.length ? avgR.toFixed(3) : 'N/A'}</td></tr>
+        </table></div>
+        <div class="section"><h2>Clinical Interpretation</h2>
+        <div class="interp">${document.getElementById('r-interp-grade').textContent}<br><br>${document.getElementById('r-interp-text').textContent}</div></div>
+        <div class="section"><h2>Recommendations</h2>
+        <div class="interp">${document.getElementById('r-recommend-text').textContent}</div></div>
+        <div class="footer">This report is generated automatically from neurofeedback session data.<br>For clinical decisions, consult a qualified EEG specialist.</div>
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 500);
 }
 
 // ── DEMO CONTROLS ──────────────────────────────────────────────────────────
@@ -1523,13 +2040,28 @@ socket.on('disconnect', () => {
 socket.on('connection_response', d => console.log('Server:', d));
 
 socket.on('prediction_data', function(data) {
-    // Map EEG prediction → balloon calm level
+    // Map EEG prediction → rocket calm level
     if (data.state === 'Calm') {
-        // Use confidence to grade between hover (0.5) and rise (1.0)
         G.calmLevel = 0.5 + data.confidence * 0.5;
     } else {
-        // Not calm: grade between fall (0) and hover (0.5)
         G.calmLevel = 0.5 - data.confidence * 0.5;
+    }
+
+    // Store raw EEG values for patient report
+    G._lastAlpha = data.alpha;
+    G._lastBeta  = data.beta;
+    G._lastRatio = data.ratio;
+    G._lastConf  = data.confidence;
+
+    // Track transitions
+    if (G.sessionActive && G.eegStats) {
+        const st = data.state;
+        if (G.eegStats.lastState && G.eegStats.lastState !== st) G.eegStats.transitions++;
+        G.eegStats.lastState = st;
+        if (data.alpha)      G.eegStats.alpha.push(data.alpha);
+        if (data.beta)       G.eegStats.beta.push(data.beta);
+        if (data.ratio)      G.eegStats.ratio.push(data.ratio);
+        if (data.confidence) G.eegStats.confidence.push(data.confidence);
     }
 
     // Also update monitor page prediction display
